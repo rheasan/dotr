@@ -1,0 +1,38 @@
+use std::fs::{create_dir_all, copy};
+use std::os::unix::fs::symlink;
+use std::path::{Path, PathBuf};
+use std::process::exit;
+
+pub fn add(src: &Path, dest: &Path){
+
+    if src.is_dir() {
+        eprintln!("Source is a directory");
+        exit(1);
+    }
+
+    if !src.try_exists().expect("Unable to read source") {
+        eprintln!("Source file does not exist");
+        exit(1);
+    }
+
+
+    make_config_dir();
+    let home_dir = std::env::var("HOME").unwrap();
+    let config_dir = PathBuf::from(home_dir).join(".dotr");
+    let dotfile_name = src.file_name().unwrap().to_str().unwrap();
+    let dotfile_path = config_dir.join(dotfile_name);
+
+    copy(src, &dotfile_path).expect(format!("failed to copy dotfile from {:?}", src).as_str());
+    symlink(dotfile_path, dest).expect("failed to create symlink");
+
+    println!("Source: {:?}", src);
+    println!("Dest.: {:?}", dest);
+}
+
+fn make_config_dir(){
+    let home_dir = std::env::var("HOME").expect("unable to read $HOME");
+    let config_path = PathBuf::from(home_dir).join(".dotr");
+    if !config_path.try_exists().expect("Unable to create dotr config path") {
+        create_dir_all(config_path).expect("failed to create dotr directory");
+    }
+}
