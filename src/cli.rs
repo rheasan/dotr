@@ -19,7 +19,6 @@ pub fn parse_args() -> Option<DotCommand>{
             .about("adds the file at <src> to dotr file list and copies it to <dest>")
             .arg(
                 clap::Arg::new("src")
-                .short('s')
                 .help("Dotfile source")
                 .action(clap::ArgAction::Set)
                 .num_args(1)
@@ -29,7 +28,6 @@ pub fn parse_args() -> Option<DotCommand>{
 
             .arg(
                 clap::Arg::new("dest")
-                .short('d')
                 .help("Dotfile dest")
                 .action(clap::ArgAction::Set)
                 .num_args(1)
