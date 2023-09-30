@@ -1,4 +1,4 @@
-use std::fs::{create_dir_all, copy, remove_dir_all};
+use std::fs::{create_dir_all, copy, remove_file};
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -24,7 +24,7 @@ pub fn add(src: &Path, dest: &Path){
 
     copy(src, &dotfile_path).expect(format!("failed to copy dotfile from {:?}", src).as_str());
 
-    if dest.try_exists().unwrap() {
+    if dest.join(dotfile_name).try_exists().unwrap() {
         println!("File already exists at {:?}. Replace? y/n", dest);
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
@@ -32,7 +32,7 @@ pub fn add(src: &Path, dest: &Path){
 
         // TODO: find better way to handle this (?)
         if input == "y" || input == "yes" {
-            remove_dir_all(dest).expect("failed to remove directory");
+            remove_file(dest.join(dotfile_name)).expect("failed to remove file");
         }
         else if input == "n" || input == "no" {
             return;
@@ -43,7 +43,7 @@ pub fn add(src: &Path, dest: &Path){
         }
     }
 
-    symlink(dotfile_path, dest).expect("failed to create symlink");
+    symlink(dotfile_path, dest.join(dotfile_name)).expect("failed to create symlink");
 
 }
 
