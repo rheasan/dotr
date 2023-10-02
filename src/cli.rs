@@ -1,13 +1,15 @@
 use clap;
 
-pub enum Command {Add}
-pub struct DotCommand {
-    pub command: Command,
-    pub args: Vec<String>
+pub struct AddCommand {
+    pub src : String,
+    pub dest: String,
+    pub is_symlink: bool 
 }
 
+pub enum Command {Add(AddCommand)}
 
-pub fn parse_args() -> Option<DotCommand>{
+
+pub fn parse_args() -> Option<Command>{
     let matched = clap::Command::new("dotr")
         .about("simple dotfile manager")
         .author("rheasan")
@@ -52,13 +54,17 @@ pub fn parse_args() -> Option<DotCommand>{
 
             let src = add_matches.get_one::<String>("src").unwrap();
             let dest = add_matches.get_one::<String>("dest").unwrap();
-            let is_symbolic = add_matches.get_flag("symbolic");
+            let is_symlink = add_matches.get_flag("symbolic");
 
-            return Some(DotCommand { 
-                command : Command::Add,
-                // TODO: tidy up this weird thing
-                args: vec![src.to_owned(), dest.to_owned(), is_symbolic.to_string()]
-            });
+            return Some(
+                Command::Add(
+                    AddCommand {
+                        src: src.to_owned(),
+                        dest: dest.to_owned(),
+                        is_symlink
+                    }
+                )
+            )
         }
         _ => unreachable!()
     }
