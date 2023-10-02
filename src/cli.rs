@@ -22,18 +22,24 @@ pub fn parse_args() -> Option<DotCommand>{
                 .help("Dotfile source")
                 .action(clap::ArgAction::Set)
                 .num_args(1)
-                .action(clap::ArgAction::Set)
+                .required(true)
             )
-            .arg_required_else_help(true)
 
             .arg(
                 clap::Arg::new("dest")
                 .help("Dotfile dest")
                 .action(clap::ArgAction::Set)
                 .num_args(1)
-                .action(clap::ArgAction::Set)
+                .required(true)
             )
-            .arg_required_else_help(true)
+
+            .arg(
+                clap::Arg::new("symbolic")
+                .long("symlink")
+                .short('s')
+                .help("copies the file at <src> to dotr directory and makes a symlink at <dest>")
+                .action(clap::ArgAction::SetTrue)
+            )
         )
         
         .get_matches();
@@ -46,11 +52,12 @@ pub fn parse_args() -> Option<DotCommand>{
 
             let src = add_matches.get_one::<String>("src").unwrap();
             let dest = add_matches.get_one::<String>("dest").unwrap();
+            let is_symbolic = add_matches.get_flag("symbolic");
 
             return Some(DotCommand { 
                 command : Command::Add,
                 // TODO: tidy up this weird thing
-                args: vec![src.to_owned(), dest.to_owned()]
+                args: vec![src.to_owned(), dest.to_owned(), is_symbolic.to_string()]
             });
         }
         _ => unreachable!()

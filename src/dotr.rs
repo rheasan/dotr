@@ -3,7 +3,7 @@ use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-pub fn add(src: &Path, dest: &Path){
+pub fn add(src: &Path, dest: &Path, is_symlink: bool){
 
     if src.is_dir() {
         eprintln!("Source is a directory");
@@ -21,8 +21,6 @@ pub fn add(src: &Path, dest: &Path){
     let config_dir = PathBuf::from(home_dir).join(".dotr");
     let dotfile_name = src.file_name().unwrap().to_str().unwrap();
     let dotfile_path = config_dir.join(dotfile_name);
-
-    copy(src, &dotfile_path).expect(format!("failed to copy dotfile from {:?}", src).as_str());
 
     if dest.join(dotfile_name).try_exists().unwrap() {
         println!("File already exists at {:?}. Replace? y/n", dest);
@@ -43,7 +41,13 @@ pub fn add(src: &Path, dest: &Path){
         }
     }
 
-    symlink(dotfile_path, dest.join(dotfile_name)).expect("failed to create symlink");
+    if is_symlink {
+        copy(src, &dotfile_path).expect(format!("failed to copy dotfile from {:?}", src).as_str());
+        symlink(dotfile_path, dest.join(dotfile_name)).expect("failed to create symlink");
+    }
+    else {
+        copy(src, dest.join(dotfile_name)).expect(format!("failed to copy dotfile from {:?}", src).as_str());
+    }
 
 }
 
