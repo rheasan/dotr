@@ -6,7 +6,7 @@ pub struct AddCommand {
     pub is_symlink: bool 
 }
 
-pub enum Command {Add(AddCommand)}
+pub enum Command {Add(AddCommand), Init}
 
 
 pub fn parse_args() -> Option<Command>{
@@ -16,6 +16,15 @@ pub fn parse_args() -> Option<Command>{
         .arg_required_else_help(true)
         .subcommand_required(true)
 
+        // init
+        .subcommand(
+            clap::Command::new("init")
+            .about(
+                "setup dotr directory.\nif used twice it will delete data stored by dotr\n(files added with symlinks will be deleted)"
+            )
+        )
+
+        // add
         .subcommand(
             clap::Command::new("add")
             .about("adds the file at <src> to dotr file list and copies it to <dest>")
@@ -65,6 +74,13 @@ pub fn parse_args() -> Option<Command>{
                     }
                 )
             )
+        },
+        Some(("init", init_matches)) => {
+            if init_matches.args_present() {
+                return None;
+            }
+
+            return Some(Command::Init);
         }
         _ => unreachable!()
     }

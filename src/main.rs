@@ -11,6 +11,9 @@ fn main() {
                 let dest = PathBuf::from(args.dest);
 
                 dotr::add(&src, &dest, args.is_symlink);
+            },
+            cli::Command::Init => {
+                dotr::init();
             }
         }
     }
