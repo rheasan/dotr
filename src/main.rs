@@ -10,7 +10,7 @@ fn main() {
                 let src = PathBuf::from(args.src);
                 let dest = PathBuf::from(args.dest);
 
-                dotr::add(&src, &dest, args.is_symlink);
+                dotr::add(&src, &dest, args.is_symlink, args.name, args.desc);
             },
             cli::Command::Init => {
                 dotr::init();

@@ -1,22 +1,24 @@
-use std::fs::{create_dir_all, copy, remove_file, write, remove_dir_all};
+use std::fs::{create_dir_all, copy, remove_file, write, remove_dir_all, read};
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 struct DotFile {
     name: String,
     desc: String,
     path: String,
+    is_symlink: bool
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct DotrData {
     remote: Option<String>,
     files: Vec<DotFile>
 }
 
-pub fn add(src: &Path, dest: &Path, is_symlink: bool){
+pub fn add(src: &Path, dest: &Path, is_symlink: bool, name: Option<String>, desc: Option<String>){
+    
 
     if src.is_dir() {
         eprintln!("Source is a directory");
@@ -35,6 +37,13 @@ pub fn add(src: &Path, dest: &Path, is_symlink: bool){
     let dotfile_name = src.file_name().unwrap().to_str().unwrap();
     let dotfile_path = config_dir.join(dotfile_name);
 
+    let data = DotFile {
+        name: name.unwrap_or_default(),
+        desc: desc.unwrap_or_default(),
+        path: dest.join(dotfile_name).to_str().unwrap().to_string(),
+        is_symlink
+    };
+
     if dest.join(dotfile_name).try_exists().unwrap() {
         println!("File already exists at {:?}. Replace? y/n", dest);
         let mut input = String::new();
@@ -44,6 +53,7 @@ pub fn add(src: &Path, dest: &Path, is_symlink: bool){
         // TODO: find better way to handle this (?)
         if input == "y" || input == "yes" {
             remove_file(dest.join(dotfile_name)).expect("failed to remove file");
+            remove_data(&data);
         }
         else if input == "n" || input == "no" {
             return;
@@ -57,11 +67,42 @@ pub fn add(src: &Path, dest: &Path, is_symlink: bool){
     if is_symlink {
         copy(src, &dotfile_path).expect(format!("failed to copy dotfile from {:?}", src).as_str());
         symlink(dotfile_path, dest.join(dotfile_name)).expect("failed to create symlink");
+        write_data(&data);
     }
     else {
         copy(src, dest.join(dotfile_name)).expect(format!("failed to copy dotfile from {:?}", src).as_str());
+        write_data(&data);
     }
 
+}
+
+fn remove_data(data: &DotFile) {
+    let home_dir = std::env::var("HOME").expect("unable to read $HOME, data not saved");
+    let config_path = PathBuf::from(home_dir).join(".dotr/dotr.json");
+    let saved_data = read(&config_path).expect("Unable to read data");
+
+    let mut dotr_data = serde_json::from_slice::<DotrData>(&saved_data).unwrap();
+    
+    dotr_data.files.remove(
+        dotr_data.files.iter()
+            .position(|f| *f.path == *data.path)
+            .unwrap()
+    );
+
+    let serialized = serde_json::to_string::<DotrData>(&dotr_data).unwrap();
+    write(&config_path, serialized).unwrap();
+
+}
+
+fn write_data(data: &DotFile){
+    let home_dir = std::env::var("HOME").expect("unable to read $HOME, data not saved");
+    let config_path = PathBuf::from(home_dir).join(".dotr/dotr.json");
+    let saved_data = read(&config_path).expect("Unable to read data");
+
+    let mut dotr_data = serde_json::from_slice::<DotrData>(&saved_data).unwrap();
+    dotr_data.files.push(data.clone());
+    let serialized = serde_json::to_string::<DotrData>(&dotr_data).unwrap();
+    write(&config_path, serialized).unwrap();
 }
 
 fn check_config_exists(){
