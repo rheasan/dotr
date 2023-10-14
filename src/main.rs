@@ -14,6 +14,17 @@ fn main() {
             },
             cli::Command::Init => {
                 dotr::init();
+            },
+            cli::Command::Remote(command) => {
+                match command.type_ {
+                    cli::RemoteCommandTypes::Push => {
+                        dotr::remote_push();
+                    },
+                    cli::RemoteCommandTypes::SetUrl => {
+                        let url = command.url.unwrap();
+                        dotr::remote_set_url(url);
+                    }
+                }
             }
         }
     }

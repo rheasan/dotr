@@ -1,7 +1,7 @@
 use std::fs::{create_dir_all, copy, remove_file, write, remove_dir_all, read};
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
-use std::process::exit;
+use std::process::{exit, Command};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -161,3 +161,65 @@ pub fn init(){
 
     write(config_path.join("dotr.json"), &serialized).expect("failed to write dotr config");
 }
+
+pub fn remote_push(){
+    todo!()
+}
+
+pub fn remote_set_url(url: String){
+    let home_dir = std::env::var("HOME").expect("unable to read $HOME, data not saved");
+    let config_path = PathBuf::from(home_dir).join(".dotr/dotr.json");
+    let saved_data = read(&config_path).expect("Unable to read data");
+
+    let mut serialized = serde_json::from_slice::<DotrData>(&saved_data).unwrap();
+    if serialized.remote.is_some(){
+        println!("A remote already exists: {}. Replace y/n?", serialized.remote.unwrap());
+        let mut option = String::new();
+        std::io::stdin().read_line(&mut option).unwrap();
+        option = option.trim().to_lowercase();
+
+        if option == "yes" || option == "y" {
+        }
+        else if option == "no" || option == "n" {
+            exit(0);
+        }
+        else {
+            eprintln!("unknown option");
+            exit(1);
+        }
+    }
+
+    if !is_valid_repo(&url){
+        eprintln!("The remote repo: {} is not a valid git repository", url);
+        exit(1);
+    }
+
+    serialized.remote = Some(url);
+    let json = serde_json::to_string::<DotrData>(&serialized).unwrap();
+    write(&config_path, json).expect("failed to write data");
+}
+
+fn is_valid_repo(url: &String) -> bool {
+    // calls git ls-remote to probe the remote repo
+    // the command will return 0 if it exists and 128 if it doesnt
+    let exit_status = Command::new("sh")
+    .arg("-c")
+    .arg(format!("git ls-remote {}", url))
+    .output()
+    .expect("failed to run git")
+    .status
+    .code().unwrap();
+
+    match exit_status {
+        0 => {
+            return true;
+        }
+        128 => {
+            return false;
+        }
+        _ => {
+            unreachable!();
+        }
+    }
+}
+

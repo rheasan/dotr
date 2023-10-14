@@ -7,8 +7,13 @@ pub struct AddCommand {
     pub desc: Option<String>,
     pub is_symlink: bool 
 }
+pub enum RemoteCommandTypes {SetUrl, Push}
+pub struct RemoteCommand {
+    pub type_ : RemoteCommandTypes,
+    pub url: Option<String>
+}
 
-pub enum Command {Add(AddCommand), Init}
+pub enum Command {Add(AddCommand), Init, Remote(RemoteCommand)}
 
 
 pub fn parse_args() -> Option<Command>{
@@ -74,7 +79,28 @@ pub fn parse_args() -> Option<Command>{
                 .required(false)
             )
         )
-        
+
+        // remote
+        .subcommand(
+            clap::Command::new("remote")
+            .about("modify remote for dotfiles")
+            .subcommand_required(true)
+            .subcommand(
+                clap::Command::new("set-url")
+                .arg(
+                    clap::Arg::new("remote-url")
+                    .help("url of remote repository")
+                    .num_args(1)
+                    .action(clap::ArgAction::Set)
+                    .required(true)
+                )
+                .about("Set the url for remote repository")
+            )
+            .subcommand(
+                clap::Command::new("push")
+                .about("Push all dotfiles to remote repository")
+            )
+        )
         .get_matches();
 
     match matched.subcommand() {
@@ -107,6 +133,31 @@ pub fn parse_args() -> Option<Command>{
             }
 
             return Some(Command::Init);
+        },
+        Some(("remote", remote_matches)) => {
+            match remote_matches.subcommand() {
+                Some(("set-url", set_url_matches)) => {
+                    let remote_url = set_url_matches.get_one::<String>("remote-url").unwrap();
+                    return Some(
+                        Command::Remote(
+                            RemoteCommand { type_: RemoteCommandTypes::SetUrl, url: Some(remote_url.to_owned()) }
+                        )
+                    )
+                },
+                Some(("push", _)) => {
+                    return Some(
+                        Command::Remote(
+                            RemoteCommand { type_: RemoteCommandTypes::Push, url: None }
+                        )
+                    )
+                },
+                Some((&_, _)) => {
+                    unreachable!()
+                }
+                None => {
+                    unreachable!()
+                }
+            }
         }
         _ => unreachable!()
     }
